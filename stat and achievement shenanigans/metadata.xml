@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <name>Stat and Achievement Shenanigans</name>
+    <directory>stat and achievement shenanigans</directory>
+    <id>3131711250</id>
+    <description>This mod requires REPENTOGON. Press the tilde key to open the new debug console and menu. There's a new Shenanigans option that will let you view/modify stats and achievements.
+
+The data here is presented very simply. Look [url=https://repentogon.com/enums/EventCounter.html]here[/url] to find out more information about each of the stats. Look [url=https://bindingofisaacrebirth.fandom.com/wiki/Achievements]here[/url] to find out more information about each of the achievements.
+
+If anything doesn't seem to be saving, try starting and exiting a new run.
+
+Modded achievements are not supported.
+
+This is a companion mod to:
+[list]
+    [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3130836503]Character Shenanigans[/url]
+    [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932859748]Win Streak Shenanigans[/url]
+[/list]</description>
+    <version>1.1</version>
+    <visibility>Public</visibility>
+    <tag id="Lua"/>
+    <tag id="Tweaks"/>
+</metadata>
