@@ -232,10 +232,10 @@ if REPENTOGON then
     }
     ImGui.AddElement('shenanigansTabStatsImportExport', '', ImGuiElement.SeparatorText, 'Export')
     for i, v in ipairs({
-                        { text = 'Export progression stats?'            , exportBoolean = 'progressionStats'     , helpText = 'Completion marks' },
-                        { text = 'Export other stats?'                  , exportBoolean = 'otherStats' },
-                        { text = 'Export character achievements?'       , exportBoolean = 'characterAchievements', helpText = 'Character unlocks' },
-                        { text = 'Export other achievements?'           , exportBoolean = 'otherAchievements' },
+                        { text = 'Export progression stats?'     , exportBoolean = 'progressionStats'     , helpText = 'Completion marks' },
+                        { text = 'Export other stats?'           , exportBoolean = 'otherStats' },
+                        { text = 'Export character achievements?', exportBoolean = 'characterAchievements', helpText = 'Character unlocks' },
+                        { text = 'Export other achievements?'    , exportBoolean = 'otherAchievements' },
                       })
     do
       local chkStatsExportId = 'shenanigansChkStatsExport' .. i
