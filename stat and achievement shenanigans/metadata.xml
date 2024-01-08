@@ -9,7 +9,7 @@ The data here is presented very simply. Look [url=https://repentogon.com/enums/E
 
 If anything doesn't seem to be saving, try starting and exiting a new run.
 
-You can also import/export all your data. When you set a field, it can trigger another field. Make sure to look over your data after performing a bulk import.
+You can also import/export all your data. When you set a field, it can trigger another field. Make sure to look over your data after performing a bulk import. If something seems wrong, a second import may fix it.
 
 Modded achievements are not supported.
 
@@ -18,7 +18,7 @@ This is a companion mod to:
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3130836503]Character Shenanigans[/url]
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932859748]Win Streak Shenanigans[/url]
 [/list]</description>
-    <version>1.4</version>
+    <version>1.5</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Tweaks"/>

@@ -8,7 +8,7 @@ if REPENTOGON then
   end
   
   -- REPENTOGON enums tend to have multiple keys per value
-  function mod:getKeys(val, tbl)
+  function mod:getKeys(tbl, val)
     local keys = {}
     
     for k, v in pairs(tbl) do
@@ -29,6 +29,16 @@ if REPENTOGON then
     end)
     
     return keys
+  end
+  
+  function mod:hasKey(tbl, key)
+    for _, v in ipairs(tbl) do
+      if v.key == key then
+        return true
+      end
+    end
+    
+    return false
   end
   
   function mod:isProgressionStat(keys)
@@ -54,10 +64,16 @@ if REPENTOGON then
   end
   
   function mod:processImportedJson(s)
-    local gameData = Isaac.GetPersistentGameData()
-    local _, data = pcall(json.decode, s)
+    local function sortKeys(a, b)
+      return a.key < b.key
+    end
     
-    if type(data) == 'table' then
+    local gameData = Isaac.GetPersistentGameData()
+    local jsonDecoded, data = pcall(json.decode, s)
+    local stats = {}
+    local achievements = {}
+    
+    if jsonDecoded and type(data) == 'table' then
       if type(data.stats) == 'table' then
         for k, v in pairs(data.stats) do
           local stat = nil
@@ -65,7 +81,9 @@ if REPENTOGON then
             stat = tonumber(string.match(k, '^(%d+)'))
           end
           if math.type(stat) == 'integer' and math.type(v) == 'integer' and stat >= 1 and stat <= EventCounter.NUM_EVENT_COUNTERS - 1 and v >= 0 then
-            gameData:IncreaseEventCounter(stat, v - gameData:GetEventCounter(stat))
+            if not mod:hasKey(stats, stat) then
+              table.insert(stats, { key = stat, value = v })
+            end
           end
         end
       end
@@ -76,15 +94,29 @@ if REPENTOGON then
             achievement = tonumber(string.match(k, '^(%d+)'))
           end
           if math.type(achievement) == 'integer' and type(v) == 'boolean' and achievement >= 1 and achievement <= Achievement.DEAD_GOD then
-            if v then
-              gameData:TryUnlock(achievement)
-            else
-              Isaac.ExecuteCommand('lockachievement ' .. achievement)
+            if not mod:hasKey(achievements, achievement) then
+              table.insert(achievements, { key = achievement, value = v })
             end
           end
         end
       end
+      
+      table.sort(stats, sortKeys)
+      table.sort(achievements, sortKeys)
+      
+      for _, v in ipairs(stats) do
+        gameData:IncreaseEventCounter(v.key, v.value - gameData:GetEventCounter(v.key))
+      end
+      for _, v in ipairs(achievements) do
+        if v.value then
+          gameData:TryUnlock(v.key)
+        else
+          Isaac.ExecuteCommand('lockachievement ' .. v.key)
+        end
+      end
     end
+    
+    return jsonDecoded, jsonDecoded and 'Imported ' .. #stats .. ' stats and ' .. #achievements .. ' achievements' or data
   end
   
   -- the json library doesn't have pretty print so custom output our json
@@ -95,7 +127,7 @@ if REPENTOGON then
     s = s .. '\n  "stats": {'
     local hasAtLeastOneStat = false
     for stat = 1, EventCounter.NUM_EVENT_COUNTERS - 1 do
-      local keys = mod:getKeys(stat, EventCounter)
+      local keys = mod:getKeys(EventCounter, stat)
       if #keys > 0 then
         local isProgressionStat = mod:isProgressionStat(keys)
         if (isProgressionStat and inclProgressionStats) or (not isProgressionStat and inclOtherStats) then
@@ -112,7 +144,7 @@ if REPENTOGON then
     s = s .. '\n  "achievements": {'
     local hasAtLeastOneAchievement = false
     for achievement = 1, Achievement.DEAD_GOD do
-      local keys = mod:getKeys(achievement, Achievement)
+      local keys = mod:getKeys(Achievement, achievement)
       if #keys > 0 then
         local isCharacterAchievement = mod:isCharacterAchievement(achievement)
         if (isCharacterAchievement and inclCharacterAchievements) or (not isCharacterAchievement and inclOtherAchievements) then
@@ -146,7 +178,7 @@ if REPENTOGON then
     -- 0 is NULL
     -- 19 and 403 don't exist in the enum
     for stat = 1, EventCounter.NUM_EVENT_COUNTERS - 1 do
-      local keys = mod:getKeys(stat, EventCounter)
+      local keys = mod:getKeys(EventCounter, stat)
       if #keys > 0 then
         local isProgressionStat = mod:isProgressionStat(keys)
         local intStatId = 'shenanigansIntStat' .. stat
@@ -169,7 +201,7 @@ if REPENTOGON then
     end
     
     for achievement = 1, Achievement.DEAD_GOD do
-      local keys = mod:getKeys(achievement, Achievement)
+      local keys = mod:getKeys(Achievement, achievement)
       if #keys > 0 then
         local chkAchievementId = 'shenanigansChkAchievement' .. achievement
         ImGui.AddCheckbox('shenanigansTabAchievements', chkAchievementId, achievement .. '.' .. table.remove(keys, 1), nil, false)
@@ -199,9 +231,11 @@ if REPENTOGON then
     end, importText, 12)
     for i, v in ipairs({
                         { text = 'Cut'        , func = function()
-                                                         Isaac.SetClipboard(importText)
-                                                         ImGui.UpdateData('shenanigansTxtStatsImport', ImGuiData.Value, '')
-                                                         importText = ''
+                                                         if importText ~= '' then
+                                                           Isaac.SetClipboard(importText)
+                                                           ImGui.UpdateData('shenanigansTxtStatsImport', ImGuiData.Value, '')
+                                                           importText = ''
+                                                         end
                                                        end },
                         { text = 'Copy'       , func = function()
                                                          Isaac.SetClipboard(importText)
@@ -214,7 +248,8 @@ if REPENTOGON then
                                                          end
                                                        end },
                         { text = 'Import JSON', func = function()
-                                                         mod:processImportedJson(importText)
+                                                         local jsonImported, msg = mod:processImportedJson(importText)
+                                                         ImGui.PushNotification(msg, jsonImported and ImGuiNotificationType.SUCCESS or ImGuiNotificationType.ERROR, 5000)
                                                        end },
                       })
     do
@@ -248,6 +283,7 @@ if REPENTOGON then
     end
     ImGui.AddButton('shenanigansTabStatsImportExport', 'shenanigansBtnStatsExport', 'Copy JSON to clipboard', function()
       Isaac.SetClipboard(mod:getJsonExport(exportBooleans.progressionStats, exportBooleans.otherStats, exportBooleans.characterAchievements, exportBooleans.otherAchievements))
+      ImGui.PushNotification('JSON copied to clipboard', ImGuiNotificationType.INFO, 5000)
     end, false)
   end
   
