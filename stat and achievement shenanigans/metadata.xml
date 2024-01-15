@@ -11,14 +11,16 @@ If anything doesn't seem to be saving, try starting and exiting a new run.
 
 You can also import/export all your data. When you set a field, it can trigger another field. Make sure to look over your data after performing a bulk import. If something seems wrong, a second import may fix it.
 
-Modded achievements are not supported.
+The import JSON uses this format for modded achievements: &quot;M-{achievementName}{modId}&quot;. If you remove &quot;M-&quot;, this is the same format you'll find in Repentogon's achievementsX.json files which are located here: C:\Users\username\Documents\My Games\Binding of Isaac Repentance\Repentogon
+
+Modded achievements are now supported.
 
 This is a companion mod to:
 [list]
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3130836503]Character Shenanigans[/url]
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932859748]Win Streak Shenanigans[/url]
 [/list]</description>
-    <version>1.5</version>
+    <version>1.6</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Tweaks"/>
