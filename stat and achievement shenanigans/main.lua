@@ -1,9 +1,9 @@
 local mod = RegisterMod('Stat and Achievement Shenanigans', 1)
 local json = require('json')
 
-mod.maxAchievement = Achievement.DEAD_GOD -- 637
-
 if REPENTOGON then
+  mod.maxAchievement = Achievement.DEAD_GOD -- 637
+  
   function mod:onRender()
     mod:RemoveCallback(ModCallbacks.MC_MAIN_MENU_RENDER, mod.onRender)
     mod:RemoveCallback(ModCallbacks.MC_POST_RENDER, mod.onRender)
