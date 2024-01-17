@@ -318,9 +318,7 @@ if REPENTOGON then
     
     for _, v in ipairs(mod:getModdedAchievements()) do
       local keys = {}
-      if v.name and v.name ~= '' then
-        table.insert(keys, v.name)
-      end
+      table.insert(keys, v.name or '')
       if v.text and v.text ~= '' then
         table.insert(keys, v.text)
       end
