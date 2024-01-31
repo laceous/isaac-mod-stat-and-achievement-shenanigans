@@ -35,7 +35,7 @@ if REPENTOGON then
   end
   
   function mod:hasKey(tbl, key)
-    for _, v in ipairs(tbl) do
+    for _, v in pairs(tbl) do
       if v.key == key then
         return true
       end
@@ -45,8 +45,22 @@ if REPENTOGON then
   end
   
   function mod:isProgressionStat(keys)
-    for _, key in ipairs(keys) do
-      if string.find(string.upper(key), '^PROGRESSION_') ~= nil then
+    for _, key in pairs(keys) do
+      key = string.upper(key)
+      if string.find(key, '^PROGRESSION_') ~= nil or
+         string.find(key, '^%d+%.PROGRESSION_') ~= nil
+      then
+        return true
+      end
+    end
+    
+    return false
+  end
+  
+  function mod:tblSearch(tbl, s)
+    s = string.lower(s)
+    for _, v in pairs(tbl) do
+      if string.find(string.lower(v), s, 1, true) then
         return true
       end
     end
@@ -277,31 +291,35 @@ if REPENTOGON then
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabAchievementsModded', 'Achievements (Modded)')
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabStatsImportExport', 'Import/Export')
     
-    -- 0 is NULL
-    -- 19 and 403 don't exist in the enum
-    for stat = 1, EventCounter.NUM_EVENT_COUNTERS - 1 do
+    local stats = {}
+    local statElements = {}
+    for stat = 1, EventCounter.NUM_EVENT_COUNTERS - 1 do -- 0 is NULL
       local keys = mod:getKeys(EventCounter, stat)
       if #keys > 0 then
-        local isProgressionStat = mod:isProgressionStat(keys)
-        local intStatId = 'shenanigansIntStat' .. stat
-        local intStatText = stat .. '.' .. table.remove(keys, 1)
-        local intStatTooltip = isProgressionStat and intStatText .. ' (0=Off,1=Normal,2=Hard)' or intStatText
-        ImGui.AddInputInteger('shenanigansTabStats', intStatId, intStatText, nil, 0, 1, 100)
-        ImGui.SetTooltip(intStatId, intStatTooltip)
-        if #keys > 0 then
-          ImGui.SetHelpmarker(intStatId, table.concat(keys, ', '))
-        end
-        ImGui.AddCallback(intStatId, ImGuiCallback.Render, function()
-          local gameData = Isaac.GetPersistentGameData()
-          ImGui.UpdateData(intStatId, ImGuiData.Value, gameData:GetEventCounter(stat))
-        end)
-        ImGui.AddCallback(intStatId, ImGuiCallback.Edited, function(num)
-          local gameData = Isaac.GetPersistentGameData()
-          gameData:IncreaseEventCounter(stat, num - gameData:GetEventCounter(stat))
-        end)
+        keys[1] = stat .. '.' .. keys[1]
+        table.insert(stats, { stat = stat, keys = keys })
       end
     end
+    ImGui.AddInputText('shenanigansTabStats', 'shenanigansTxtStatsSearch', '', function(txt)
+      local searchedStats
+      if txt == '' then
+        searchedStats = stats
+      else
+        searchedStats = {}
+        for _, v in ipairs(stats) do
+          if mod:tblSearch(v.keys, txt) then
+            table.insert(searchedStats, v)
+          end
+        end
+      end
+      mod:clearElements(statElements)
+      mod:processStats(searchedStats, statElements)
+    end, '', 'Search...')
+    ImGui.AddElement('shenanigansTabStats', '', ImGuiElement.Separator, '')
+    mod:processStats(stats, statElements)
     
+    local achievements = {}
+    local achievementElements = {}
     -- potential improvement: XMLData.GetEntryById(XMLNode.ACHIEVEMENT, id).sourceid == 'BaseGame'
     -- this can be manipulated by adding <id>BaseGame</id> to the metadata.xml file
     -- that's extrememly rare, but still technically possible
@@ -312,10 +330,30 @@ if REPENTOGON then
         if achievementText then
           table.insert(keys, achievementText)
         end
-        mod:processAchievement(achievement, keys, 'shenanigansTabAchievements', 'shenanigansChkAchievement')
+        keys[1] = achievement .. '.' .. keys[1]
+        table.insert(achievements, { achievement = achievement, keys = keys })
       end
     end
+    ImGui.AddInputText('shenanigansTabAchievements', 'shenanigansTxtAchievementsSearch', '', function(txt)
+      local searchedAchievements
+      if txt == '' then
+        searchedAchievements = achievements
+      else
+        searchedAchievements = {}
+        for _, v in ipairs(achievements) do
+          if mod:tblSearch(v.keys, txt) then
+            table.insert(searchedAchievements, v)
+          end
+        end
+      end
+      mod:clearElements(achievementElements)
+      mod:processAchievements(searchedAchievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement')
+    end, '', 'Search...')
+    ImGui.AddElement('shenanigansTabAchievements', '', ImGuiElement.Separator, '')
+    mod:processAchievements(achievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement')
     
+    local moddedAchievements = {}
+    local moddedAchievementElements = {}
     for _, v in ipairs(mod:getModdedAchievements()) do
       local keys = {}
       table.insert(keys, v.name or '')
@@ -329,10 +367,28 @@ if REPENTOGON then
       if v.id and v.id ~= '' and #keys > 0 then
         local achievement = tonumber(v.id)
         if math.type(achievement) == 'integer' then
-          mod:processAchievement(achievement, keys, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded')
+          keys[1] = achievement .. '.' .. keys[1]
+          table.insert(moddedAchievements, { achievement = achievement, keys = keys })
         end
       end
     end
+    ImGui.AddInputText('shenanigansTabAchievementsModded', 'shenanigansTxtAchievementsModdedSearch', '', function(txt)
+      local searchedAchievements
+      if txt == '' then
+        searchedAchievements = moddedAchievements
+      else
+        searchedAchievements = {}
+        for _, v in ipairs(moddedAchievements) do
+          if mod:tblSearch(v.keys, txt) then
+            table.insert(searchedAchievements, v)
+          end
+        end
+      end
+      mod:clearElements(moddedAchievementElements)
+      mod:processAchievements(searchedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded')
+    end, '', 'Search...')
+    ImGui.AddElement('shenanigansTabAchievementsModded', '', ImGuiElement.Separator, '')
+    mod:processAchievements(moddedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded')
     
     local importText = ''
     ImGui.AddElement('shenanigansTabStatsImportExport', '', ImGuiElement.SeparatorText, 'Import')
@@ -402,19 +458,59 @@ if REPENTOGON then
     end, false)
   end
   
-  function mod:processAchievement(achievement, keys, tab, chkPrefix)
-    local chkAchievementId = chkPrefix .. achievement
-    ImGui.AddCheckbox(tab, chkAchievementId, achievement .. '.' .. table.remove(keys, 1), nil, false)
-    if #keys > 0 then
-      ImGui.SetHelpmarker(chkAchievementId, table.concat(keys, ', '))
+  function mod:clearElements(elements)
+    for k, v in pairs(elements) do
+      ImGui.RemoveElement(v)
+      elements[k] = nil
     end
-    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
-      local gameData = Isaac.GetPersistentGameData()
-      ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
-    end)
-    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
-      mod:unlockLock(achievement, b)
-    end)
+  end
+  
+  function mod:processStats(stats, statElements)
+    for _, v in ipairs(stats) do
+      local stat = v.stat
+      local keys = v.keys
+      local isProgressionStat = mod:isProgressionStat(keys)
+      local intStatId = 'shenanigansIntStat' .. stat
+      local intStatText = table.remove(keys, 1)
+      local intStatTooltip = isProgressionStat and intStatText .. ' (0=Off,1=Normal,2=Hard)' or intStatText
+      ImGui.AddInputInteger('shenanigansTabStats', intStatId, intStatText, nil, 0, 1, 100)
+      ImGui.SetTooltip(intStatId, intStatTooltip)
+      if #keys > 0 then
+        ImGui.SetHelpmarker(intStatId, table.concat(keys, ', '))
+      end
+      table.insert(keys, 1, intStatText)
+      table.insert(statElements, intStatId)
+      ImGui.AddCallback(intStatId, ImGuiCallback.Render, function()
+        local gameData = Isaac.GetPersistentGameData()
+        ImGui.UpdateData(intStatId, ImGuiData.Value, gameData:GetEventCounter(stat))
+      end)
+      ImGui.AddCallback(intStatId, ImGuiCallback.Edited, function(num)
+        local gameData = Isaac.GetPersistentGameData()
+        gameData:IncreaseEventCounter(stat, num - gameData:GetEventCounter(stat))
+      end)
+    end
+  end
+  
+  function mod:processAchievements(achievements, achievementElements, tab, chkPrefix)
+    for _, v in ipairs(achievements) do
+      local achievement = v.achievement
+      local keys = v.keys
+      local chkAchievementId = chkPrefix .. achievement
+      local chkAchievementText = table.remove(keys, 1)
+      ImGui.AddCheckbox(tab, chkAchievementId, chkAchievementText, nil, false)
+      if #keys > 0 then
+        ImGui.SetHelpmarker(chkAchievementId, table.concat(keys, ', '))
+      end
+      table.insert(keys, 1, chkAchievementText)
+      table.insert(achievementElements, chkAchievementId)
+      ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
+        local gameData = Isaac.GetPersistentGameData()
+        ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
+      end)
+      ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
+        mod:unlockLock(achievement, b)
+      end)
+    end
   end
   
   -- launch options allow you to skip the menu
