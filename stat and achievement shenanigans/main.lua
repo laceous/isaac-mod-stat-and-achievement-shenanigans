@@ -151,7 +151,7 @@ if REPENTOGON then
   function mod:unlockLock(achievement, unlock)
     if unlock then
       local gameData = Isaac.GetPersistentGameData()
-      gameData:TryUnlock(achievement) -- Isaac.ExecuteCommand('achievement ' .. achievement)
+      gameData:TryUnlock(achievement, false) -- Isaac.ExecuteCommand('achievement ' .. achievement)
     else
       Isaac.ExecuteCommand('lockachievement ' .. achievement)
     end
@@ -220,31 +220,27 @@ if REPENTOGON then
     local s = '{'
     
     s = s .. '\n  "stats": {'
-    local hasAtLeastOneStat = false
+    local sbStats = {}
     for stat = 1, EventCounter.NUM_EVENT_COUNTERS - 1 do
       local keys = mod:getKeys(EventCounter, stat)
       if #keys > 0 then
         local isProgressionStat = mod:isProgressionStat(keys)
         if (isProgressionStat and inclProgressionStats) or (not isProgressionStat and inclOtherStats) then
-          s = s .. '\n    ' .. json.encode(stat .. '-' .. keys[1]) .. ': ' .. gameData:GetEventCounter(stat) .. ','
-          hasAtLeastOneStat = true
+          table.insert(sbStats, '\n    ' .. json.encode(stat .. '-' .. keys[1]) .. ': ' .. gameData:GetEventCounter(stat))
         end
       end
     end
-    if hasAtLeastOneStat then
-      s = string.sub(s, 1, -2) -- strip last comma
-    end
+    s = s .. table.concat(sbStats, ',')
     s = s .. '\n  },'
     
     s = s .. '\n  "achievements": {'
-    local hasAtLeastOneAchievement = false
+    local sbAchievements = {}
     for achievement = 1, mod.maxAchievement do
       local keys = mod:getKeys(Achievement, achievement)
       if #keys > 0 then
         local isCharacterAchievement = mod:isCharacterAchievement(achievement)
         if (isCharacterAchievement and inclCharacterAchievements) or (not isCharacterAchievement and inclOtherAchievements) then
-          s = s .. '\n    ' .. json.encode(achievement .. '-' .. keys[1]) .. ': ' .. tostring(gameData:Unlocked(achievement)) .. ','
-          hasAtLeastOneAchievement = true
+          table.insert(sbAchievements, '\n    ' .. json.encode(achievement .. '-' .. keys[1]) .. ': ' .. tostring(gameData:Unlocked(achievement)))
         end
       end
     end
@@ -254,15 +250,12 @@ if REPENTOGON then
           local achievement = tonumber(v.id)
           if math.type(achievement) == 'integer' then
             -- ids are transient, the json file saves these as name + sourceid
-            s = s .. '\n    ' .. json.encode('M-' .. v.name .. v.sourceid) .. ': ' .. tostring(gameData:Unlocked(achievement)) .. ','
-            hasAtLeastOneAchievement = true
+            table.insert(sbAchievements, '\n    ' .. json.encode('M-' .. v.name .. v.sourceid) .. ': ' .. tostring(gameData:Unlocked(achievement)))
           end
         end
       end
     end
-    if hasAtLeastOneAchievement then
-      s = string.sub(s, 1, -2)
-    end
+    s = s .. table.concat(sbAchievements, ',')
     s = s .. '\n  }'
     
     s = s .. '\n}'
@@ -496,8 +489,10 @@ if REPENTOGON then
       table.insert(keys, 1, chkAchievementText)
       table.insert(achievementElements, chkAchievementId)
       ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
-        local gameData = Isaac.GetPersistentGameData()
-        ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
+        if Isaac.GetFrameCount() % 2 == 0 then -- better performance for all 600+ achievements
+          local gameData = Isaac.GetPersistentGameData()
+          ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
+        end
       end)
       ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
         mod:unlockLock(achievement, b)
