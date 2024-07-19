@@ -305,6 +305,7 @@ if REPENTOGON then
     
     local achievements = {}
     local achievementElements = {}
+    local achievementSort = 0 -- 0 = numerical, 1 = unlocked to bottom, 2 = unlocked to top
     -- potential improvement: XMLData.GetEntryById(XMLNode.ACHIEVEMENT, id).sourceid == 'BaseGame'
     -- this can be manipulated by adding <id>BaseGame</id> to the metadata.xml file
     -- that's extrememly rare, but still technically possible
@@ -319,8 +320,8 @@ if REPENTOGON then
         table.insert(achievements, { achievement = achievement, keys = keys })
       end
     end
+    local searchedAchievements = achievements
     ImGui.AddInputText('shenanigansTabAchievements', 'shenanigansTxtAchievementsSearch', '', function(txt)
-      local searchedAchievements
       if txt == '' then
         searchedAchievements = achievements
       else
@@ -332,13 +333,20 @@ if REPENTOGON then
         end
       end
       mod:clearElements(achievementElements)
-      mod:processAchievements(searchedAchievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement')
+      mod:processAchievements(searchedAchievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement', achievementSort)
     end, '', 'Search...')
+    ImGui.AddRadioButtons('shenanigansTabAchievements', 'shenanigansRadAchievementsSort', function(idx)
+      achievementSort = idx
+      mod:clearElements(achievementElements)
+      mod:processAchievements(searchedAchievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement', achievementSort)
+    end, { '\u{f162}', '\u{f884}', '\u{f160}' }, achievementSort, true)
+    ImGui.SetHelpmarker('shenanigansRadAchievementsSort', 'Click to refresh (does not auto-refresh)')
     ImGui.AddElement('shenanigansTabAchievements', '', ImGuiElement.Separator, '')
-    mod:processAchievements(achievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement')
+    mod:processAchievements(achievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement', achievementSort)
     
     local moddedAchievements = {}
     local moddedAchievementElements = {}
+    local moddedAchievementSort = 0
     for _, v in ipairs(mod:getModdedAchievements()) do
       local keys = {}
       table.insert(keys, v.name or '')
@@ -357,23 +365,29 @@ if REPENTOGON then
         end
       end
     end
+    local moddedSearchedAchievements = moddedAchievements
     ImGui.AddInputText('shenanigansTabAchievementsModded', 'shenanigansTxtAchievementsModdedSearch', '', function(txt)
-      local searchedAchievements
       if txt == '' then
-        searchedAchievements = moddedAchievements
+        moddedSearchedAchievements = moddedAchievements
       else
-        searchedAchievements = {}
+        moddedSearchedAchievements = {}
         for _, v in ipairs(moddedAchievements) do
           if mod:tblSearch(v.keys, txt) then
-            table.insert(searchedAchievements, v)
+            table.insert(moddedSearchedAchievements, v)
           end
         end
       end
       mod:clearElements(moddedAchievementElements)
-      mod:processAchievements(searchedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded')
+      mod:processAchievements(moddedSearchedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded', moddedAchievementSort)
     end, '', 'Search...')
+    ImGui.AddRadioButtons('shenanigansTabAchievementsModded', 'shenanigansRadAchievementsModdedSort', function(idx)
+      moddedAchievementSort = idx
+      mod:clearElements(moddedAchievementElements)
+      mod:processAchievements(moddedSearchedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded', moddedAchievementSort)
+    end, { '\u{f162}', '\u{f884}', '\u{f160}' }, moddedAchievementSort, true)
+    ImGui.SetHelpmarker('shenanigansRadAchievementsModdedSort', 'Click to refresh (does not auto-refresh)')
     ImGui.AddElement('shenanigansTabAchievementsModded', '', ImGuiElement.Separator, '')
-    mod:processAchievements(moddedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded')
+    mod:processAchievements(moddedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded', moddedAchievementSort)
     
     local importText = ''
     ImGui.AddElement('shenanigansTabStatsImportExport', '', ImGuiElement.SeparatorText, 'Import')
@@ -476,28 +490,40 @@ if REPENTOGON then
     end
   end
   
-  function mod:processAchievements(achievements, achievementElements, tab, chkPrefix)
+  function mod:processAchievements(achievements, achievementElements, tab, chkPrefix, sort)
+    local gameData = Isaac.GetPersistentGameData()
+    local deferredAchievements = {}
     for _, v in ipairs(achievements) do
-      local achievement = v.achievement
-      local keys = v.keys
-      local chkAchievementId = chkPrefix .. achievement
-      local chkAchievementText = table.remove(keys, 1)
-      ImGui.AddCheckbox(tab, chkAchievementId, chkAchievementText, nil, false)
-      if #keys > 0 then
-        ImGui.SetHelpmarker(chkAchievementId, table.concat(keys, ', '))
+      v.unlocked = gameData:Unlocked(v.achievement)
+      if (sort == 1 and v.unlocked) or (sort == 2 and not v.unlocked) then
+        table.insert(deferredAchievements, v)
+      else
+        mod:processAchievement(v.achievement, v.keys, v.unlocked, achievementElements, tab, chkPrefix)
       end
-      table.insert(keys, 1, chkAchievementText)
-      table.insert(achievementElements, chkAchievementId)
-      ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
-        if Isaac.GetFrameCount() % 2 == 0 then -- better performance for all 600+ achievements
-          local gameData = Isaac.GetPersistentGameData()
-          ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
-        end
-      end)
-      ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
-        mod:unlockLock(achievement, b)
-      end)
     end
+    for _, v in ipairs(deferredAchievements) do
+      mod:processAchievement(v.achievement, v.keys, v.unlocked, achievementElements, tab, chkPrefix)
+    end
+  end
+  
+  function mod:processAchievement(achievement, keys, unlocked, achievementElements, tab, chkPrefix)
+    local chkAchievementId = chkPrefix .. achievement
+    local chkAchievementText = table.remove(keys, 1)
+    ImGui.AddCheckbox(tab, chkAchievementId, chkAchievementText, nil, unlocked)
+    if #keys > 0 then
+      ImGui.SetHelpmarker(chkAchievementId, table.concat(keys, ', '))
+    end
+    table.insert(keys, 1, chkAchievementText)
+    table.insert(achievementElements, chkAchievementId)
+    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
+      if Isaac.GetFrameCount() % 4 == 0 then -- better performance for all 600+ achievements
+        local gameData = Isaac.GetPersistentGameData()
+        ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
+      end
+    end)
+    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
+      mod:unlockLock(achievement, b)
+    end)
   end
   
   -- launch options allow you to skip the menu
