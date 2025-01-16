@@ -2,7 +2,7 @@ local mod = RegisterMod('Stat and Achievement Shenanigans', 1)
 local json = require('json')
 
 if REPENTOGON then
-  mod.maxAchievement = Achievement.DEAD_GOD -- 637
+  mod.maxAchievement = REPENTANCE_PLUS and Achievement.WON_ONLINE_DAILY or Achievement.DEAD_GOD -- 640 or 637
   
   function mod:onRender()
     mod:RemoveCallback(ModCallbacks.MC_MAIN_MENU_RENDER, mod.onRender)
@@ -452,8 +452,9 @@ if REPENTOGON then
       end
     end
     ImGui.AddButton('shenanigansTabStatsImportExport', 'shenanigansBtnStatsExport', 'Copy JSON to clipboard', function()
-      Isaac.SetClipboard(mod:getJsonExport(exportBooleans.progressionStats, exportBooleans.otherStats, exportBooleans.characterAchievements, exportBooleans.otherAchievements, exportBooleans.moddedAchievements))
-      ImGui.PushNotification('Copied JSON to clipboard', ImGuiNotificationType.INFO, 5000)
+      if Isaac.SetClipboard(mod:getJsonExport(exportBooleans.progressionStats, exportBooleans.otherStats, exportBooleans.characterAchievements, exportBooleans.otherAchievements, exportBooleans.moddedAchievements)) then
+        ImGui.PushNotification('Copied JSON to clipboard', ImGuiNotificationType.INFO, 5000)
+      end
     end, false)
   end
   
