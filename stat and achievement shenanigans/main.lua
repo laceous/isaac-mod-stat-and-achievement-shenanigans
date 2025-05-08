@@ -4,9 +4,7 @@ local json = require('json')
 if REPENTOGON then
   mod.maxAchievement = REPENTANCE_PLUS and Achievement.WON_ONLINE_DAILY or Achievement.DEAD_GOD -- 640 or 637
   
-  function mod:onRender()
-    mod:RemoveCallback(ModCallbacks.MC_MAIN_MENU_RENDER, mod.onRender)
-    mod:RemoveCallback(ModCallbacks.MC_POST_RENDER, mod.onRender)
+  function mod:onModsLoaded()
     mod:setupImGui()
   end
   
@@ -262,10 +260,13 @@ if REPENTOGON then
     return s
   end
   
-  function mod:setupImGui()
+  function mod:setupImGuiMenu()
     if not ImGui.ElementExists('shenanigansMenu') then
       ImGui.CreateMenu('shenanigansMenu', '\u{f6d1} Shenanigans')
     end
+  end
+  
+  function mod:setupImGui()
     ImGui.AddElement('shenanigansMenu', 'shenanigansMenuItemStats', ImGuiElement.MenuItem, '\u{e473} Stat and Achievement Shenanigans')
     ImGui.CreateWindow('shenanigansWindowStats', 'Stat and Achievement Shenanigans')
     ImGui.LinkWindowToElement('shenanigansWindowStats', 'shenanigansMenuItemStats')
@@ -527,7 +528,6 @@ if REPENTOGON then
     end)
   end
   
-  -- launch options allow you to skip the menu
-  mod:AddCallback(ModCallbacks.MC_MAIN_MENU_RENDER, mod.onRender)
-  mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRender)
+  mod:setupImGuiMenu()
+  mod:AddCallback(ModCallbacks.MC_POST_MODS_LOADED, mod.onModsLoaded)
 end
