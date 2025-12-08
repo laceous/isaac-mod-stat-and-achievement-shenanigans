@@ -482,8 +482,10 @@ if REPENTOGON then
       table.insert(keys, 1, intStatText)
       table.insert(statElements, intStatId)
       ImGui.AddCallback(intStatId, ImGuiCallback.Render, function()
-        local gameData = Isaac.GetPersistentGameData()
-        ImGui.UpdateData(intStatId, ImGuiData.Value, gameData:GetEventCounter(stat))
+        if Isaac.GetFrameCount() % 30 == 0 then -- better performance for all 500+ stats
+          local gameData = Isaac.GetPersistentGameData()
+          ImGui.UpdateData(intStatId, ImGuiData.Value, gameData:GetEventCounter(stat))
+        end
       end)
       ImGui.AddCallback(intStatId, ImGuiCallback.Edited, function(num)
         local gameData = Isaac.GetPersistentGameData()
@@ -518,7 +520,7 @@ if REPENTOGON then
     table.insert(keys, 1, chkAchievementText)
     table.insert(achievementElements, chkAchievementId)
     ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
-      if Isaac.GetFrameCount() % 4 == 0 then -- better performance for all 600+ achievements
+      if Isaac.GetFrameCount() % 30 == 0 then -- better performance for all 600+ achievements
         local gameData = Isaac.GetPersistentGameData()
         ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
       end
