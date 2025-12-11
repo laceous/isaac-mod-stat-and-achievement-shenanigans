@@ -473,7 +473,7 @@ if REPENTOGON then
       local isProgressionStat = mod:isProgressionStat(keys)
       local intStatId = 'shenanigansIntStat' .. stat
       local intStatText = table.remove(keys, 1)
-      local intStatTooltip = isProgressionStat and intStatText .. ' (0=Off,1=Normal,2=Hard)' or intStatText
+      local intStatTooltip = isProgressionStat and intStatText .. ' (0=Off,1=Normal,2=Hard,4=NormalOnline,8=HardOnline|Add values to enable multiple)' or intStatText
       ImGui.AddInputInteger('shenanigansTabStats', intStatId, intStatText, nil, 0, 1, 100)
       ImGui.SetTooltip(intStatId, intStatTooltip)
       if #keys > 0 then
@@ -481,7 +481,7 @@ if REPENTOGON then
       end
       table.insert(keys, 1, intStatText)
       table.insert(statElements, intStatId)
-      ImGui.AddCallback(intStatId, ImGuiCallback.Render, function()
+      ImGui.AddCallback(intStatId, ImGuiCallback.Render, function() -- Visible seems to block any updates to text fields for some reason
         if Isaac.GetFrameCount() % 30 == 0 then -- better performance for all 500+ stats
           local gameData = Isaac.GetPersistentGameData()
           ImGui.UpdateData(intStatId, ImGuiData.Value, gameData:GetEventCounter(stat))
@@ -519,13 +519,12 @@ if REPENTOGON then
     end
     table.insert(keys, 1, chkAchievementText)
     table.insert(achievementElements, chkAchievementId)
-    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Render, function()
-      if Isaac.GetFrameCount() % 30 == 0 then -- better performance for all 600+ achievements
-        local gameData = Isaac.GetPersistentGameData()
-        ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
-      end
+    ImGui.AddCallback(chkAchievementId, ImGuiCallback.Visible, function() -- Visible has better performance than Render
+      local gameData = Isaac.GetPersistentGameData()
+      ImGui.UpdateData(chkAchievementId, ImGuiData.Value, gameData:Unlocked(achievement))
     end)
     ImGui.AddCallback(chkAchievementId, ImGuiCallback.Edited, function(b)
+      b = not b -- using Visible over Render flips the boolean for some reason
       mod:unlockLock(achievement, b)
     end)
   end
