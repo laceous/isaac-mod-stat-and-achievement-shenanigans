@@ -19,8 +19,10 @@ This is a companion mod to:
 [list]
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3130836503]Character Shenanigans[/url]
     [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932859748]Win Streak Shenanigans[/url]
-[/list]</description>
-    <version>1.17</version>
+[/list]
+
+Update: If you're starting from a new save file and use the alt+f2 trick from the stats menu (which imports achievements from steam), it doesn't fill in your item/ending/bestiary collections. There's a new Misc tab that will help fill those out. Fine control over most of these numbers isn't currently available. Secrets can be controlled via the Achievements tab. Online can be controlled by going to the Stats tab and searching for online_sin.</description>
+    <version>1.18</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Tweaks"/>

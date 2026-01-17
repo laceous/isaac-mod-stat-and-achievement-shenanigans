@@ -1,11 +1,24 @@
 local mod = RegisterMod('Stat and Achievement Shenanigans', 1)
 local json = require('json')
+local game = Game()
 
 if REPENTOGON then
   mod.maxAchievement = REPENTANCE_PLUS and Achievement.WON_ONLINE_DAILY or Achievement.DEAD_GOD -- 640 or 637
+  mod.delayedExit = false
   
   function mod:onModsLoaded()
     mod:setupImGui()
+  end
+  
+  function mod:onGameExit()
+    mod.delayedExit = false
+  end
+  
+  function mod:onUpdate()
+    if mod.delayedExit then
+      mod.delayedExit = false
+      game:End(Ending.EPILOGUE)
+    end
   end
   
   -- REPENTOGON enums tend to have multiple keys per value
@@ -260,6 +273,28 @@ if REPENTOGON then
     return s
   end
   
+  function mod:spawnBestiaryEntitiesAndExit(isModded, isBoss)
+    for i = 1, XMLData.GetNumEntries(XMLNode.ENTITY) do
+      local entry = XMLData.GetEntryByOrder(XMLNode.ENTITY, i)
+      local entity = EntityConfig.GetEntity(entry.type, entry.variant)
+      if entity and ((isModded and entity:GetModName()) or (not isModded and not entity:GetModName())) then -- entry.sourceid == 'BaseGame'
+        if entity:GetBestiaryAnimation() and entity:GetBestiaryAnimation() ~= '' and ((isBoss and entity:IsBoss()) or (not isBoss and not entity:IsBoss())) then
+          Isaac.Spawn(entity:GetType(), entity:GetVariant(), entity:GetSubType(), Vector.Zero, Vector.Zero, nil)
+        end
+      end
+    end
+    
+    game:GetRoom():Update()
+    
+    if not game:IsGreedMode() and not isModded and isBoss then
+      -- special handling for mom
+      Isaac.ExecuteCommand('goto s.boss.1060')
+      mod.delayedExit = true
+    else
+      game:End(Ending.EPILOGUE)
+    end
+  end
+  
   function mod:setupImGuiMenu()
     if not ImGui.ElementExists('shenanigansMenu') then
       ImGui.CreateMenu('shenanigansMenu', '\u{f6d1} Shenanigans')
@@ -275,6 +310,7 @@ if REPENTOGON then
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabStats', 'Stats')
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabAchievements', 'Achievements')
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabAchievementsModded', 'Achievements (Modded)')
+    ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabStatsMisc', 'Misc')
     ImGui.AddTab('shenanigansTabBarStats', 'shenanigansTabStatsImportExport', 'Import/Export')
     
     local stats = {}
@@ -389,6 +425,57 @@ if REPENTOGON then
     ImGui.SetHelpmarker('shenanigansRadAchievementsModdedSort', 'Click to refresh (does not auto-refresh)')
     ImGui.AddElement('shenanigansTabAchievementsModded', '', ImGuiElement.Separator, '')
     mod:processAchievements(moddedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded', moddedAchievementSort)
+    
+    local btnStatsItemsId = 'shenanigansBtnStatsItems'
+    local btnStatsEndingsId = 'shenanigansBtnStatsEndings'
+    local btnStatsMonstersId = 'shenanigansBtnStatsBestiaryMonsters'
+    local btnStatsBossesId = 'shenanigansBtnStatsBestiaryBosses'
+    ImGui.AddButton('shenanigansTabStatsMisc', btnStatsItemsId, ' Complete Item Collection ', function()
+      if Isaac.IsInGame() then
+        local itemConfig = Isaac.GetItemConfig()
+        local player = game:GetPlayer(0)
+        
+        for i = 1, CollectibleType.NUM_COLLECTIBLES - 1 do -- 0 is COLLECTIBLE_NULL
+          local collectibleConfig = itemConfig:GetCollectible(i)
+          if collectibleConfig then
+            player:AddCollectible(i)
+          end
+        end
+        
+        game:End(Ending.EPILOGUE)
+        ImGui.Hide()
+      else
+        ImGui.PushNotification('Start a new run before using this option.', ImGuiNotificationType.ERROR, 5000)
+      end
+    end, false)
+    ImGui.SetHelpmarker(btnStatsItemsId, 'Instructions: start a run, click the button, all built-in collectibles will be given to the player, the run will end, goto stats->items in the menu to view your collection')
+    ImGui.AddButton('shenanigansTabStatsMisc', btnStatsEndingsId, 'Complete Ending Collection', function()
+      for i = 2, 26 do -- 1 is the intro
+        Isaac.ExecuteCommand('cutscene ' .. i) -- Isaac.PlayCutscene
+      end
+      ImGui.Hide()
+    end, false)
+    ImGui.SetHelpmarker(btnStatsEndingsId, 'Instructions: kicks off all ending cutscenes, goto stats->endings in the menu to view your collection')
+    -- doing monsters + bosses together causes issues (things get skipped in the bestiary)
+    -- not doing modded entities for now, it seems really easy to freeze the game
+    ImGui.AddButton('shenanigansTabStatsMisc', btnStatsMonstersId, 'Complete Bestiary Collection (Monsters)', function()
+      if Isaac.IsInGame() then
+        mod:spawnBestiaryEntitiesAndExit(false, false)
+        ImGui.Hide()
+      else
+        ImGui.PushNotification('Start a new run before using this option.', ImGuiNotificationType.ERROR, 5000)
+      end
+    end, false)
+    ImGui.SetHelpmarker(btnStatsMonstersId, 'Instructions: start a run, click the button, all built-in monsters will be spawned, the run will end, goto stats->bestiary->monsters in the menu to view your collection')
+    ImGui.AddButton('shenanigansTabStatsMisc', btnStatsBossesId, ' Complete Bestiary Collection (Bosses) ', function()
+      if Isaac.IsInGame() then
+        mod:spawnBestiaryEntitiesAndExit(false, true)
+        ImGui.Hide()
+      else
+        ImGui.PushNotification('Start a new run before using this option.', ImGuiNotificationType.ERROR, 5000)
+      end
+    end, false)
+    ImGui.SetHelpmarker(btnStatsBossesId, 'Instructions: start a run, click the button, all built-in bosses will be spawned, the run will end, goto stats->bestiary->bosses in the menu to view your collection')
     
     local importText = ''
     ImGui.AddElement('shenanigansTabStatsImportExport', '', ImGuiElement.SeparatorText, 'Import')
@@ -531,4 +618,6 @@ if REPENTOGON then
   
   mod:setupImGuiMenu()
   mod:AddCallback(ModCallbacks.MC_POST_MODS_LOADED, mod.onModsLoaded)
+  mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, mod.onGameExit)
+  mod:AddCallback(ModCallbacks.MC_NPC_UPDATE, mod.onUpdate)
 end
