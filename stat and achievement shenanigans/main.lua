@@ -321,7 +321,8 @@ if REPENTOGON then
         table.insert(stats, { stat = stat, keys = keys })
       end
     end
-    ImGui.AddInputText('shenanigansTabStats', 'shenanigansTxtStatsSearch', '', function(txt)
+    ImGui.AddInputText('shenanigansTabStats', 'shenanigansTxtStatsSearch', '', nil, '', 'Search...')
+    ImGui.AddCallback('shenanigansTxtStatsSearch', ImGuiCallback.DeactivatedAfterEdit, function(txt)
       local searchedStats
       if txt == '' then
         searchedStats = stats
@@ -335,7 +336,7 @@ if REPENTOGON then
       end
       mod:clearElements(statElements)
       mod:processStats(searchedStats, statElements)
-    end, '', 'Search...')
+    end)
     ImGui.AddElement('shenanigansTabStats', '', ImGuiElement.Separator, '')
     mod:processStats(stats, statElements)
     
@@ -357,7 +358,8 @@ if REPENTOGON then
       end
     end
     local searchedAchievements = achievements
-    ImGui.AddInputText('shenanigansTabAchievements', 'shenanigansTxtAchievementsSearch', '', function(txt)
+    ImGui.AddInputText('shenanigansTabAchievements', 'shenanigansTxtAchievementsSearch', '', nil, '', 'Search...')
+    ImGui.AddCallback('shenanigansTxtAchievementsSearch', ImGuiCallback.DeactivatedAfterEdit, function(txt)
       if txt == '' then
         searchedAchievements = achievements
       else
@@ -370,7 +372,7 @@ if REPENTOGON then
       end
       mod:clearElements(achievementElements)
       mod:processAchievements(searchedAchievements, achievementElements, 'shenanigansTabAchievements', 'shenanigansChkAchievement', achievementSort)
-    end, '', 'Search...')
+    end)
     ImGui.AddRadioButtons('shenanigansTabAchievements', 'shenanigansRadAchievementsSort', function(idx)
       achievementSort = idx
       mod:clearElements(achievementElements)
@@ -402,7 +404,8 @@ if REPENTOGON then
       end
     end
     local moddedSearchedAchievements = moddedAchievements
-    ImGui.AddInputText('shenanigansTabAchievementsModded', 'shenanigansTxtAchievementsModdedSearch', '', function(txt)
+    ImGui.AddInputText('shenanigansTabAchievementsModded', 'shenanigansTxtAchievementsModdedSearch', '', nil, '', 'Search...')
+    ImGui.AddCallback('shenanigansTxtAchievementsModdedSearch', ImGuiCallback.DeactivatedAfterEdit, function(txt)
       if txt == '' then
         moddedSearchedAchievements = moddedAchievements
       else
@@ -415,7 +418,7 @@ if REPENTOGON then
       end
       mod:clearElements(moddedAchievementElements)
       mod:processAchievements(moddedSearchedAchievements, moddedAchievementElements, 'shenanigansTabAchievementsModded', 'shenanigansChkAchievementModded', moddedAchievementSort)
-    end, '', 'Search...')
+    end)
     ImGui.AddRadioButtons('shenanigansTabAchievementsModded', 'shenanigansRadAchievementsModdedSort', function(idx)
       moddedAchievementSort = idx
       mod:clearElements(moddedAchievementElements)
